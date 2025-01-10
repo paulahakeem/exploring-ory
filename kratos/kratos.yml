@@ -1,8 +1,8 @@
 version: v0.7.1-alpha.1
 
 # dsn: memory
-dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
-
+# dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
+dsn: "postgres://kratos:secret@postgres-kratos:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4"
 
 serve:
   public:
