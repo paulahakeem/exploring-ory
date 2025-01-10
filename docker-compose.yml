@@ -69,16 +69,16 @@ services:
       - ./kratos:/etc/config/kratos
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
 
-  kratos-selfservice-ui-node:
-    image: oryd/kratos-selfservice-ui-node:v0.8.0-alpha.3
-    environment:
-      - KRATOS_PUBLIC_URL=http://kratos:4433/
-      - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
-    networks:
-      - intranet
-    ports:
-      - "3000:3000"
-    restart: on-failure
+  # kratos-selfservice-ui-node:
+  #   image: oryd/kratos-selfservice-ui-node:v0.8.0-alpha.3
+  #   environment:
+  #     - KRATOS_PUBLIC_URL=http://kratos:4433/
+  #     - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
+  #   networks:
+  #     - intranet
+  #   ports:
+  #     - "3000:3000"
+  #   restart: on-failure
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
