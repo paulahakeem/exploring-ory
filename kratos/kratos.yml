@@ -1,7 +1,10 @@
 version: v0.7.1-alpha.1
 
 # dsn: memory
-dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
+# dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
+dsn: "postgres://postgres:password@localhost:5432/local"
+
+
 
 
 serve:

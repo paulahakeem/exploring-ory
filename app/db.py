@@ -4,7 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from databases import Database
 import logging
 
-DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "sqlite:///./test.db"
+
+# Update DATABASE_URL to use PostgreSQL
+DATABASE_URL = "postgresql://postgres:password@localhost:5432/local"
 
 # Create the database instance
 database = Database(DATABASE_URL)

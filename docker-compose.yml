@@ -36,9 +36,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=kratos
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=kratos
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=local
     networks:
       - intranet
 
@@ -47,7 +47,7 @@ services:
     depends_on:
       - postgres-kratos
     environment:
-      - DSN=postgres://kratos:secret@postgres-kratos:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     networks:
       - intranet
     volumes:
@@ -59,7 +59,7 @@ services:
     depends_on:
       - postgres-kratos
     environment:
-      - DSN=postgres://kratos:secret@postgres-kratos:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     ports:
       - "4433:4433"
       - "4434:4434"
@@ -69,16 +69,16 @@ services:
       - ./kratos:/etc/config/kratos
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
 
-  kratos-selfservice-ui-node:
-    image: oryd/kratos-selfservice-ui-node:v0.8.0-alpha.3
-    environment:
-      - KRATOS_PUBLIC_URL=http://kratos:4433/
-      - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
-    networks:
-      - intranet
-    ports:
-      - "3000:3000"
-    restart: on-failure
+  # kratos-selfservice-ui-node:
+  #   image: oryd/kratos-selfservice-ui-node:v0.8.0-alpha.3
+  #   environment:
+  #     - KRATOS_PUBLIC_URL=http://kratos:4433/
+  #     - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
+  #   networks:
+  #     - intranet
+  #   ports:
+  #     - "3000:3000"
+  #   restart: on-failure
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
@@ -88,16 +88,16 @@ services:
     networks:
       - intranet
 
-  postgres-keto:
-    image: postgres:9.6
-    ports:
-      - "15432:5432"
-    environment:
-      - POSTGRES_USER=keto
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=keto
-    networks:
-      - intranet
+  # postgres-keto:
+  #   image: postgres:9.6
+  #   ports:
+  #     - "15432:5432"
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=password
+  #     - POSTGRES_DB=keto
+  #   networks:
+  #     - intranet
 
   keto-migrate:
     image: oryd/keto:v0.7.0-alpha.1
@@ -105,11 +105,11 @@ services:
       - ./keto:/home/ory
     environment:
       - LOG_LEVEL=debug
-      - DSN=postgres://keto:secret@postgres-keto:5432/keto?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     command: ["migrate", "up", "-y"]
     restart: on-failure
     depends_on:
-      - postgres-keto
+      - postgres-kratos
     networks:
       - intranet
 
@@ -123,7 +123,7 @@ services:
     depends_on:
       - keto-migrate
     environment:
-      - DSN=postgres://keto:secret@postgres-keto:5432/keto?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     networks:
       - intranet
     command: serve
