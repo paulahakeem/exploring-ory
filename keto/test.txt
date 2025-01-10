@@ -1,0 +1,14 @@
+// [
+//   {
+//     "namespace": "app",
+//     "object": "home",
+//     "relation": "read",
+//     "subject_id": "mariam@gmail.com"
+//   },
+//   {
+//     "namespace": "app",
+//     "object": "dashboard",
+//     "relation": "admin",
+//     "subject_id": "admin@example.com"
+//   }
+// ]

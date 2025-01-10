@@ -1,0 +1,138 @@
+version: v0.7.1-alpha.1
+
+# dsn: memory
+dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
+
+
+serve:
+  public:
+    base_url: http://127.0.0.1:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:8000  # Allow requests from your FastAPI frontend
+        - http://127.0.0.1:8000  
+      #   - http://localhost:4000  # Allow requests from your React frontend
+      # allowed_methods:
+      #   - POST
+      #   - GET
+      #   - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-CSRF-Token
+      # exposed_headers:
+      #   - Content-Type
+      allow_credentials: true 
+
+      # KRATOS_URL: "http://kratos:4433"
+
+  admin:
+    base_url: http://kratos:4434/
+
+
+
+selfservice:
+  default_browser_return_url: http://127.0.0.1:8000/
+  # allowed_return_urls:
+  #   - https://www.myapp.com/welcome
+  # whitelisted_return_urls:
+  #   - http://127.0.0.1:8000
+
+  methods:
+    password:
+      enabled: true
+    oidc:
+      enabled: true
+
+  flows:
+    error:
+      ui_url: http://127.0.0.1:8000/error
+
+    settings:
+      ui_url: http://127.0.0.1:8000/settings
+      privileged_session_max_age: 15m
+
+    recovery:
+      enabled: true
+      ui_url: http://127.0.0.1:8000/recovery
+
+    verification:
+      enabled: false
+      ui_url: http://127.0.0.1:8000/verification
+      after:
+        default_browser_return_url: http://127.0.0.1:8000/
+
+    logout:
+      after:
+        default_browser_return_url: http://127.0.0.1:8000/login
+
+    login:
+      ui_url: http://127.0.0.1:8000/login
+      lifespan: 10m
+
+    registration:
+      lifespan: 10m
+      ui_url: http://127.0.0.1:8000/registration
+      after:
+        password:
+          hooks:
+            - hook: session
+
+session:
+  cookie:
+    domain: 127.0.0.1
+    path: /
+    
+    
+    
+
+log:
+  level: debug
+  format: text
+  leak_sensitive_values: true
+
+secrets:
+  cookie:
+    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+  cipher:
+    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+# identity:
+  # default_schema_url: file:///etc/config/kratos/identity.schema.json
+  # default_schema_url: file://./identity.schema.json
+identity:
+  schemas:
+    - id: default
+      url: file://./identity.schema.json
+
+# identity:
+#   schemas:
+#     - id: default
+#       url: file:///C:/Users/maria/OneDrive/Desktop/examples/kratos-keto-flask/kratos/identity.schema.json
+
+
+
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    
+
+
+
+# curl http://localhost:4433/health/ready   
+# keto  serve -c .\keto.yml               
+# kratos migrate sql -e --config .\kratos.yml
+
+# Using the Keto CLI:
+
+# keto serve -c .\keto.yml 

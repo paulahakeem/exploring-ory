@@ -1,0 +1,6 @@
+{
+  "namespace": "app",
+  "object": "dashboard",
+  "relation": "read",
+  "subject_id": "admin4@admin.com"
+}
