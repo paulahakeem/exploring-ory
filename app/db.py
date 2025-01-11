@@ -5,7 +5,7 @@ from databases import Database
 import logging
 
 # DATABASE_URL = "sqlite:///./test.db"
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/local"
+DATABASE_URL = "postgresql://postgres:password@postgres:5432/local"
 
 
 # Create the database instance
