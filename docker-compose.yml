@@ -2,11 +2,12 @@ version: '3.7'
 
 services:
   oathkeeper:
+    container_name: oathkeeper  
     image: oryd/oathkeeper:v0.38
     depends_on:
       - kratos
     ports:
-      - 8080:4455
+      - 8001:4455
       - 4456:4456
     command: serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml"
     environment:
@@ -18,6 +19,7 @@ services:
       - ./oathkeeper:/etc/config/oathkeeper
 
   fastapi:
+    container_name: fastapi  
     build:
       context: .
     image: fastapi_app
@@ -31,7 +33,8 @@ services:
     volumes:
       - .:/app
 
-  postgres-kratos:
+  postgres:
+    container_name: postgres
     image: postgres:9.6
     ports:
       - "5432:5432"
@@ -43,11 +46,12 @@ services:
       - intranet
 
   kratos-migrate:
+    container_name: kratos-migrate  
     image: oryd/kratos:v0.8.0-alpha.3
     depends_on:
-      - postgres-kratos
+      - postgres
     environment:
-      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     networks:
       - intranet
     volumes:
@@ -55,11 +59,12 @@ services:
     command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
 
   kratos:
+    container_name: kratos  
     image: oryd/kratos:v0.8.0-alpha.3
     depends_on:
-      - postgres-kratos
+      - postgres
     environment:
-      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     ports:
       - "4433:4433"
       - "4434:4434"
@@ -81,6 +86,7 @@ services:
   #   restart: on-failure
 
   mailslurper:
+    container_name: mailslurper 
     image: oryd/mailslurper:latest-smtps
     ports:
       - "4436:4436"
@@ -100,20 +106,22 @@ services:
   #     - intranet
 
   keto-migrate:
+    container_name: keto-migrate 
     image: oryd/keto:v0.7.0-alpha.1
     volumes:
       - ./keto:/home/ory
     environment:
       - LOG_LEVEL=debug
-      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     command: ["migrate", "up", "-y"]
     restart: on-failure
     depends_on:
-      - postgres-kratos
+      - postgres
     networks:
       - intranet
 
   keto:
+    container_name: keto  
     image: oryd/keto:v0.7.0-alpha.1
     volumes:
       - ./keto:/home/ory
@@ -123,7 +131,7 @@ services:
     depends_on:
       - keto-migrate
     environment:
-      - DSN=postgres://postgres:password@localhost:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     networks:
       - intranet
     command: serve
