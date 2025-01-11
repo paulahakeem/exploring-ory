@@ -107,7 +107,7 @@ services:
 
   keto-migrate:
     container_name: keto-migrate 
-    image: oryd/keto:v0.7.0-alpha.1
+    image: oryd/keto:v0.12.0-alpha.0
     volumes:
       - ./keto:/home/ory
     environment:
@@ -122,7 +122,7 @@ services:
 
   keto:
     container_name: keto  
-    image: oryd/keto:v0.7.0-alpha.1
+    image: oryd/keto:v0.12.0-alpha.0
     volumes:
       - ./keto:/home/ory
     ports:
