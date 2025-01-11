@@ -1,13 +1,19 @@
+import uuid
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.params import Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from ory_kratos_client import ApiClient, Configuration, FrontendApi
-from ory_kratos_client.models.update_registration_flow_with_password_method import UpdateRegistrationFlowWithPasswordMethod
-from ory_kratos_client.models.update_registration_flow_body import UpdateRegistrationFlowBody
+from ory_keto_client.models.add_ory_access_control_policy_role_members_body import AddOryAccessControlPolicyRoleMembersBody
+from ory_keto_client.api import EnginesApi
 from ory_kratos_client.models.update_login_flow_with_password_method import UpdateLoginFlowWithPasswordMethod
 from ory_kratos_client.models.update_login_flow_body import UpdateLoginFlowBody
 from ory_kratos_client.exceptions import ApiException
+from pprint import pprint
 import httpx
+import logging
+from app.db import engine, get_db
 # from http.cookies import SimpleCookie
 # from fastapi.middleware.cors import CORSMiddleware
 # from ory_kratos_client.models import (
@@ -27,17 +33,42 @@ import httpx
 # )
 import requests
 
+from app.models import Blog
+from app.create_tables import create_tables
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Access environment variables and add static callback values
+KETO_URL_WRITE = os.getenv("KETO_URL_WRITE", "http://127.0.0.1:4467")
+KRATOS_EXTERNAL_API_URL = os.getenv("KRATOS_EXTERNAL_API_URL", "http://127.0.0.1:4433")
+KRATOS_UI_URL = os.getenv("KRATOS_UI_URL", "http://127.0.0.1:8000")
+KETO_API_READ_URL = os.getenv("KETO_API_READ_URL", "http://127.0.0.1:4466")
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # Configure Ory Kratos client
-config = Configuration(host="http://127.0.0.1:4433")
+config = Configuration(host=f"{KRATOS_EXTERNAL_API_URL}")
 api_client=ApiClient(config)
 # Set headers for the API client
 api_client.set_default_header("Accept", "application/json")
 api_client.set_default_header("Content-Type", "application/json")
 frontend_api = FrontendApi(api_client)
+permission_api=EnginesApi(api_client)
+print(f"permission_api: {dir(permission_api)}")
+
+# Check database connection
+try:
+    with engine.connect() as connection:
+        print("Database connected successfully!")
+except Exception as e:
+    logging.error(f"Failed to connect to the database: {e}")
+    print(f"Error: {e}")
+    
+create_tables()
+
 
 # Home route
 
@@ -51,41 +82,30 @@ frontend_api = FrontendApi(api_client)
 # )
 
 
-# # Kratos variables for the application
-KRATOS_EXTERNAL_API_URL ="http://127.0.0.1:4433"
-
-KRATOS_UI_URL ="http://127.0.0.1:8000"
-
-# # Keto
-KETO_API_READ_URL = "http://127.0.0.1:4466"
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def welcome(request: Request):
     return templates.TemplateResponse("welcome.html", {"request": request})
 
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
+@app.get("/home", response_class=HTMLResponse)
+async def home(request: Request, db = Depends(get_db)):
     # Check if the session cookie is present
     if "ory_kratos_session" not in request.cookies:
         return RedirectResponse(url=KRATOS_UI_URL)
     print(f"request.cookies: {request.cookies}")
-    
-   
+
     # Verify the session with Kratos
     response = requests.get(
         f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami", cookies=request.cookies
     )
-    
+
     kratos_response = response.json()
     print(f"Kratos response: {kratos_response}")
     print(f"Kratos status code: {response.status_code}")
     if response.status_code != 200 or not response.json().get("active"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-   # Parse the JSON response
-    
-
+    # Parse the JSON response
     if response.status_code != 200 or not kratos_response.get("active"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -101,12 +121,12 @@ async def dashboard(request: Request):
         f"{KETO_API_READ_URL}/relation-tuples/check",
         params={
             "namespace": "app",
-            "object": "dashboard",
+            "object": "home",
             "relation": "read",
             "subject_id": email,
         }
-    ) 
-    
+    )
+
     # Log the raw Keto response text
     print(f"Raw Keto response text: {permissions_response.text}")
     print(f"Keto status code: {permissions_response.status_code}")
@@ -114,9 +134,15 @@ async def dashboard(request: Request):
     if not permissions_response.json().get("allowed"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # Render the dashboard template with the user's email
-    return templates.TemplateResponse("dashboard.html", {"request": request, "username": f"{first} {last}"})
+    # Fetch blogs created by the user
+    blogs = db.query(Blog).filter(Blog.owner == email).all()
 
+    # Render the home template with the user's email and blogs
+    return templates.TemplateResponse("home.html", {
+        "request": request,
+        "username": f"{first} {last}",
+        "blogs": blogs,
+    })
 # Login route
 
 @app.get("/login")
@@ -132,14 +158,16 @@ async def show_login_form(request: Request):
             cookies=request.cookies
         )
         if session_response.status_code == 200 and session_response.json().get("active"):
-            return RedirectResponse(url="/dashboard")
+            return RedirectResponse(url="/home")
+    else:
+        RedirectResponse(url=f"{KRATOS_EXTERNAL_API_URL}/self-service/registration/browser")
     try:
         async with httpx.AsyncClient() as client:
             cookies = request.cookies
             headers = {"Accept": "application/json"}
 
             response = await client.get(
-                "http://127.0.0.1:4433/self-service/login/browser",
+                f"{KRATOS_EXTERNAL_API_URL}/self-service/login/browser",
                 cookies=cookies,
                 headers=headers,
             )
@@ -208,7 +236,7 @@ async def handle_login(
         # Send the login request to Kratos
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"http://127.0.0.1:4433/self-service/login?flow={flow}",
+                f"{KRATOS_EXTERNAL_API_URL}/self-service/login?flow={flow}",
                 json=login_data_dict["actual_instance"],
                 headers={
                     "Accept": "application/json",
@@ -227,8 +255,9 @@ async def handle_login(
 
                 # Set the session cookie in the response
                 session_cookie = response.cookies.get("ory_kratos_session")
+                
                 if session_cookie:
-                    response = RedirectResponse(url="/dashboard", status_code=303)
+                    response = RedirectResponse(url="/home", status_code=303)
                     response.set_cookie(
                         key="ory_kratos_session",
                         value=session_cookie,
@@ -307,10 +336,13 @@ async def show_registration_form(request: Request):
     if "ory_kratos_session" in request.cookies:
         session_response = requests.get(
             f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami",
-            cookies=request.cookies
-        )
+            cookies=request.cookies)
+        
         if session_response.status_code == 200 and session_response.json().get("active"):
-            return RedirectResponse(url="/dashboard")
+            return RedirectResponse(url="/home")
+    else:
+        RedirectResponse(url=f"{KRATOS_EXTERNAL_API_URL}/self-service/registration/browser")
+            
     
     form_data = await request.form()
     
@@ -325,9 +357,13 @@ async def show_registration_form(request: Request):
             headers = {
                 "Accept": "application/json",
             }
+            
+            
+            print(f"request.cookies: {request.cookies}")
+            print(f"request.headers: {request.headers}")
 
             response = await client.get(
-                "http://127.0.0.1:4433/self-service/registration/browser",
+                f"{KRATOS_EXTERNAL_API_URL}/self-service/registration/browser",
                 cookies=cookies,
                 headers=headers
             )
@@ -381,28 +417,29 @@ async def handle_registration(
 
     try:
         # Prepare the registration data
-        registration_data = UpdateRegistrationFlowBody(
-            actual_instance=UpdateRegistrationFlowWithPasswordMethod(
-                csrf_token=csrf_token,
-                password=password,
-                method="password",
-                traits={"email": email, "name": {"first": first_name, "last": last_name}},
-                transient_payload={},
-            )
-        )
-
-        # Convert the registration data to a dictionary
-        registration_data_dict = registration_data.dict()
+        registration_data = {
+            "csrf_token": csrf_token,
+            "password": password,
+            "method": "password",
+            "traits": {
+                "email": email,
+                "name": {
+                    "first": first_name,
+                    "last": last_name
+                }
+            },
+            "transient_payload": {}
+        }
 
         # Convert cookies dictionary to a string
         cookies_str = "; ".join([f"{key}={value}" for key, value in request.cookies.items()])
-        print(f"Cookies as string: {cookies_str}")
 
         # Send the registration request to Kratos
         async with httpx.AsyncClient() as client:
+            # Register the user with Kratos
             response = await client.post(
-                f"http://127.0.0.1:4433/self-service/registration?flow={flow}",
-                json=registration_data_dict["actual_instance"],
+                f"{KRATOS_EXTERNAL_API_URL}/self-service/registration?flow={flow}",
+                json=registration_data,
                 headers={
                     "Accept": "application/json",
                     "Content-Type": "application/json",
@@ -416,7 +453,46 @@ async def handle_registration(
             if response.status_code == 200:
                 # Registration successful
                 print("Registration successful")
-                return RedirectResponse(url="http://127.0.0.1:4433/self-service/login/browser", status_code=303)
+
+                # Extract the user ID from the Kratos response
+                user_email = response.json().get('identity', {}).get('traits', {}).get('email', '')
+                print(f"User email: {user_email}")
+                if not user_email:
+                    raise HTTPException(status_code=500, detail="Failed to extract user ID from Kratos response")
+
+                # Grant the user read permission for the home page using Keto
+                keto_payload = {
+                    "namespace": "app",
+                    "object": "home",
+                    "relation": "read",
+                    "subject_id": f"{user_email}"
+                }
+
+                # Create the relation tuple in Keto
+                keto_response = await client.put(
+                    f"{KETO_URL_write}/admin/relation-tuples",
+                    json=keto_payload,
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                )
+
+                # Check the response status code
+                if keto_response.status_code != 201:
+                    print(f"Keto response status code: {keto_response.status_code}")
+                    print(f"Keto response text: {keto_response.text}")
+                    # Log the specific error returned by Keto
+                    error_detail = keto_response.json().get("error", {}).get("message", "Unknown error")
+                    
+                    print(f"Keto error: {error_detail}")
+                    print(f"Keto response: {keto_response.json()}")
+                    raise HTTPException(status_code=500, detail=f"Failed to create relation tuple in Keto: {error_detail}")
+
+                print(f"Keto response: {keto_response.json()}")
+
+                # Redirect to the login page
+                return RedirectResponse(url=f"{KRATOS_EXTERNAL_API_URL}/self-service/login/browser", status_code=303)
 
             elif response.status_code == 400:
                 # Handle form validation errors
@@ -446,7 +522,6 @@ async def handle_registration(
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=400, detail=f"Data serialization error: {e}")
-
 
 
 
@@ -527,27 +602,222 @@ async def update_logout(request: Request):
     except Exception as e:
         print(f"Error updating logout flow: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-
-
-
-
-
-
-# @app.post("/login")
-# async def login_user(email: str = Form(...), password: str = Form(...)):
-#     # Step 1: Initiate login flow
-#     login_flow = await initiate_login_flow()
     
-#     # Step 2: Complete login with provided email and password
-#     login_response = await complete_login_flow(
-#         flow_id=login_flow.id,
-#         email=email,
-#         password=password
-#     )
     
-#     # Return the login result (session token, identity)
-#     return JSONResponse(content=login_response.to_dict())
+@app.post("/create-blog", response_class=JSONResponse)
+async def create_blog(
+    request: Request,
+    title: str = Form(...),
+    content: str = Form(...),
+    db = Depends(get_db)
+):
+    # Check if the session cookie is present
+    if "ory_kratos_session" not in request.cookies:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Verify the session with Kratos
+    response = requests.get(
+        f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami", cookies=request.cookies
+    )
+
+    # Check if the session is valid
+    if response.status_code != 200 or not response.json().get("active"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Extract the user's email from the session
+    user_email = response.json().get("identity", {}).get("traits", {}).get("email")
+    if not user_email:
+        raise HTTPException(status_code=500, detail="Failed to extract user email from Kratos response")
+
+    # Create a new Blog instance
+    new_blog = Blog(
+        id=str(uuid.uuid4()),  # Generate a UUID for the blog
+        title=title,
+        content=content,
+        owner=user_email
+    )
+
+    # Add and commit to the database
+    db.add(new_blog)
+    db.commit()
+    db.refresh(new_blog)
+
+    # Set a relation tuple in Keto to grant the user permission to manage the blog
+    keto_payload = {
+        "namespace": "app",
+        "object": str(new_blog.id),  # The blog ID is the object
+        "relation": "owner",         # The user is the owner of the blog
+        "subject_id": user_email     # The user's email is the subject
+    }
+
+    # Create the relation tuple in Keto
+    keto_response = requests.put(
+        f"{KETO_URL_write}/admin/relation-tuples",
+        json=keto_payload,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+    )
+
+    # Check the Keto response
+    if keto_response.status_code != 201:
+        print(f"Keto response status code: {keto_response.status_code}")
+        print(f"Keto response text: {keto_response.text}")
+        error_detail = keto_response.json().get("error", {}).get("message", "Unknown error")
+        raise HTTPException(status_code=500, detail=f"Failed to create relation tuple in Keto: {error_detail}")
+
+    print(f"Keto response: {keto_response.json()}")
+
+    return JSONResponse(content={
+        "message": "Blog created successfully",
+        "blog": {
+            "id": str(new_blog.id),
+            "title": new_blog.title,
+            "content": new_blog.content,
+            "owner": new_blog.owner,
+        }
+    })
+@app.get("/{blog_id}", response_class=HTMLResponse)
+async def read_blog(
+    request: Request,
+    blog_id: str,
+    db = Depends(get_db)
+):
+    # Query the database for the blog
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if blog is None:
+        raise HTTPException(status_code=404, detail="Blog not found")
+
+    # Check if the blog is publicly accessible
+    keto_public_response = requests.get(
+        f"{KETO_API_READ_URL}/relation-tuples/check",
+        params= {
+        "namespace": "app",
+        "object": str(blog_id),  # The blog ID is the object
+        "relation": "view",  # The permission to view the blog
+        "subject_id": '*'
+    }
+    )
+
+    # If the blog is publicly accessible, allow access to any authenticated user
+    if keto_public_response.status_code == 200 and keto_public_response.json().get("allowed"):
+        # Check if the user is authenticated
+        if "ory_kratos_session" not in request.cookies:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        # Verify the session with Kratos
+        response = requests.get(
+            f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami", cookies=request.cookies
+        )
+
+        # Check if the session is valid
+        if response.status_code != 200 or not response.json().get("active"):
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        # Render the blog details in the template
+        return templates.TemplateResponse("blog_detail.html", {"request": request, "blog": blog})
+
+    # If the blog is not publicly accessible, check if the user has the `view` relation
+    if "ory_kratos_session" not in request.cookies:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Verify the session with Kratos
+    response = requests.get(
+        f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami", cookies=request.cookies
+    )
+
+    # Check if the session is valid
+    if response.status_code != 200 or not response.json().get("active"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Extract the user's email from the session
+    user_email = response.json().get("identity", {}).get("traits", {}).get("email")
+    if not user_email:
+        raise HTTPException(status_code=500, detail="Failed to extract user email from Kratos response")
+
+    # Check if the user has permission to view the blog using Keto
+    keto_response = requests.get(
+        f"{KETO_API_READ_URL}/relation-tuples/check",
+        params={
+            "namespace": "app",
+            "object": str(blog_id),
+            "relation": "owner",
+            "subject_id": user_email,
+        }
+    )
+
+    # Check the Keto response
+    if not keto_response.json().get("allowed"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Render the blog details in the template
+    return templates.TemplateResponse("blog_detail.html", {"request": request, "blog": blog})
+
+@app.post("/{blog_id}/allow-public-view", response_class=JSONResponse)
+async def allow_public_view(
+    request: Request,
+    blog_id: str,
+    db = Depends(get_db)
+):
+    # Check if the session cookie is present
+    if "ory_kratos_session" not in request.cookies:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Verify the session with Kratos
+    response = requests.get(
+        f"{KRATOS_EXTERNAL_API_URL}/sessions/whoami", cookies=request.cookies
+    )
+
+    # Check if the session is valid
+    if response.status_code != 200 or not response.json().get("active"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Extract the user's email from the session
+    user_email = response.json().get("identity", {}).get("traits", {}).get("email")
+    if not user_email:
+        raise HTTPException(status_code=500, detail="Failed to extract user email from Kratos response")
+
+    # Query the database for the blog
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if blog is None:
+        raise HTTPException(status_code=404, detail="Blog not found")
+
+    # Check if the user is the owner of the blog
+    if blog.owner != user_email:
+        raise HTTPException(status_code=403, detail="Only the blog owner can allow public view")
+
+    # Set a relation tuple in Keto to allow all authenticated users to view the blog
+    keto_payload = {
+        "namespace": "app",
+        "object": str(blog_id),  # The blog ID is the object
+        "relation": "view",  # The permission to view the blog
+        "subject_id": '*'
+    }
+
+    # Create the relation tuple in Keto
+    keto_response = requests.put(
+        f"{KETO_URL_write}/admin/relation-tuples",
+        json=keto_payload,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+    )
+
+    # Check the Keto response
+    if keto_response.status_code != 201:
+        print(f"Keto response status code: {keto_response.status_code}")
+        print(f"Keto response text: {keto_response.text}")
+        error_detail = keto_response.json().get("error", {}).get("message", "Unknown error")
+        raise HTTPException(status_code=500, detail=f"Failed to create relation tuple in Keto: {error_detail}")
+
+    print(f"Keto response: {keto_response.json()}")
+
+    return JSONResponse(content={"message": "Public view allowed for blog", "blog_id": blog_id})
+
+
+
 
 # # Optionally, add an endpoint to fetch identity information
 # @app.get("/identity/{identity_id}")

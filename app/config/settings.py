@@ -14,7 +14,6 @@ Uses .env file for local development
 # ENV = env.str("FLASK_ENV", default="production")
 # DEBUG = ENV == "development"
 
-# SECRET_KEY = env.str("SECRET_KEY", default="something-insecure")
 
 # # Kratos variables for the application
 # KRATOS_EXTERNAL_API_URL = env.str(

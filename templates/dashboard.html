@@ -3,49 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 1rem;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #0056b3;
-        }
-
-        p {
-            font-size: 1.2rem;
-        }
-
-        a {
-            color: #0056b3;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <title>Home</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome, {{ username }}!</h1>
-        <p>You are successfully logged in.</p>
-        <a href="/logout">Logout</a>
-    </div>
+    <h1>Welcome to the Home Page, Hello {{ first_name }} {{ last_name }}!</h1>
+    <p>Only logged-in users with proper permissions can view this page.</p>
 </body>
 </html>

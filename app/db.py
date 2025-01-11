@@ -5,9 +5,8 @@ from databases import Database
 import logging
 
 # DATABASE_URL = "sqlite:///./test.db"
-
-# Update DATABASE_URL to use PostgreSQL
 DATABASE_URL = "postgresql://postgres:password@localhost:5432/local"
+
 
 # Create the database instance
 database = Database(DATABASE_URL)
@@ -17,7 +16,8 @@ metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
 # Create the SQLAlchemy engine and session
-engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+# engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Dependency to get a database session
@@ -28,10 +28,3 @@ def get_db():
     finally:
         db.close()
 
-# Check database connection
-try:
-    with engine.connect() as connection:
-        print("Database connected successfully!")
-except Exception as e:
-    logging.error(f"Failed to connect to the database: {e}")
-    print(f"Error: {e}")

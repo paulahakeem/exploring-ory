@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ blog.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #0056b3;
+        }
+
+        p {
+            font-size: 1.2rem;
+        }
+
+        a {
+            color: #0056b3;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #004080;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ blog.title }}</h1>
+        <p>{{ blog.content }}</p>
+        <p><strong>Created by:</strong> {{ blog.owner }}</p>
+        <p><strong>Created at:</strong> {{ blog.created_at }}</p>
+        <a href="/home">Back to Home</a>
+
+        <!-- Add a button to allow public view -->
+        <button id="allow-public-view-btn">Allow Public View</button>
+    </div>
+
+    <script>
+        // Add an event listener to the button
+        document.getElementById("allow-public-view-btn").addEventListener("click", async () => {
+            const blogId = "{{ blog.id }}"; // Get the blog ID from the template
+
+            try {
+                // Send a POST request to the backend
+                const response = await fetch(`/${blogId}/allow-public-view`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include", // Include cookies for authentication
+                });
+
+                if (response.ok) {
+                    alert("Blog is now publicly viewable!");
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to allow public view: ${errorData.detail}`);
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred while processing your request.");
+            }
+        });
+    </script>
+</body>
+</html>
