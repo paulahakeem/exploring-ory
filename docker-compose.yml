@@ -19,6 +19,8 @@ services:
       - ./oathkeeper:/etc/config/oathkeeper
 
   fastapi:
+    env_file:
+      - .env
     container_name: fastapi  
     build:
       context: .
