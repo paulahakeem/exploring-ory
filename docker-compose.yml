@@ -65,6 +65,7 @@ services:
     image: oryd/kratos:v1.3.1
     depends_on:
       - postgres
+      - kratos-migrate
     environment:
       - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
     ports:
