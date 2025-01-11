@@ -49,7 +49,7 @@ services:
 
   kratos-migrate:
     container_name: kratos-migrate  
-    image: oryd/kratos:v1.3.1
+    image: oryd/kratos:v1.0
     depends_on:
       - postgres
     environment:
@@ -62,7 +62,7 @@ services:
 
   kratos:
     container_name: kratos  
-    image: oryd/kratos:v1.3.1
+    image: oryd/kratos:v1.0
     depends_on:
       - postgres
       - kratos-migrate
