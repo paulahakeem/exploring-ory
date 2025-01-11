@@ -1,4 +1,4 @@
-version: v1.3.1
+version: v1.0
 
 # dsn: memory
 # dsn: "sqlite:///C:/Users/maria/OneDrive/Desktop/ory_keratos/test.db?_fk=true"
