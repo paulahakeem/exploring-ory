@@ -470,7 +470,7 @@ async def handle_registration(
 
                 # Create the relation tuple in Keto
                 keto_response = await client.put(
-                    f"{KETO_URL_write}/admin/relation-tuples",
+                    f"{KETO_URL_WRITE}/admin/relation-tuples",
                     json=keto_payload,
                     headers={
                         "Accept": "application/json",
@@ -652,7 +652,7 @@ async def create_blog(
 
     # Create the relation tuple in Keto
     keto_response = requests.put(
-        f"{KETO_URL_write}/admin/relation-tuples",
+        f"{KETO_URL_WRITE}/admin/relation-tuples",
         json=keto_payload,
         headers={
             "Accept": "application/json",
@@ -797,7 +797,7 @@ async def allow_public_view(
 
     # Create the relation tuple in Keto
     keto_response = requests.put(
-        f"{KETO_URL_write}/admin/relation-tuples",
+        f"{KETO_URL_WRITE}/admin/relation-tuples",
         json=keto_payload,
         headers={
             "Accept": "application/json",
