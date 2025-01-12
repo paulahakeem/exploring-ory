@@ -63,21 +63,21 @@ selfservice:
 
     verification:
       enabled: false
-      ui_url: http://127.0.0.1:8000/verification
+      ui_url: https://ory.cloud-stacks.com/verification
       after:
-        default_browser_return_url: http://127.0.0.1:8000/
+        default_browser_return_url: https://ory.cloud-stacks.com/
 
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:8000/login
+        default_browser_return_url: https://ory.cloud-stacks.com/login
 
     login:
-      ui_url: http://127.0.0.1:8000/login
+      ui_url: https://ory.cloud-stacks.com/login
       lifespan: 10m
 
     registration:
       lifespan: 10m
-      ui_url: http://127.0.0.1:8000/registration
+      ui_url: https://ory.cloud-stacks.com/registration
       after:
         password:
           hooks:
@@ -85,7 +85,7 @@ selfservice:
 
 session:
   cookie:
-    domain: 127.0.0.1
+    domain: ory.cloud-stacks.com
     path: /
     
     
