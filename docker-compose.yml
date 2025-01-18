@@ -68,6 +68,8 @@ services:
       - kratos-migrate
     environment:
       - DSN=postgres://postgres:password@postgres:5432/local?sslmode=disable&max_conns=20&max_idle_conns=4
+      - SERVE_PUBLIC_BASE_URL=https://ory.cloud-stacks.com
+      - SERVE_ADMIN_BASE_URL=http://127.0.0.1:4434
     ports:
       - "4433:4433"
       - "4434:4434"
