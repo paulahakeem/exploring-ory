@@ -17,17 +17,24 @@ serve:
         - http://127.0.0.1:8000 
         - https://ory.cloud-stacks.com/
       #   - http://localhost:4000  # Allow requests from your React frontend
-      # allowed_methods:
-      #   - POST
-      #   - GET
-      #   - OPTIONS
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
       allowed_headers:
         - Authorization
+        - Cookie
         - Content-Type
-        - X-CSRF-Token
-      # exposed_headers:
-      #   - Content-Type
-      allow_credentials: true 
+        - X-Session-Token
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
+      options_passthrough: true
+      debug: true
+    
 
       # KRATOS_URL: "http://kratos:4433"
 
@@ -83,12 +90,18 @@ selfservice:
           hooks:
             - hook: session
 
+
+cookies:
+  domain: ory.cloud-stacks.com
+  path: /
+  same_site: Lax
+
+
 session:
   cookie:
     domain: ory.cloud-stacks.com
     path: /
-    
-    
+    same_site: Lax
     
 
 log:
